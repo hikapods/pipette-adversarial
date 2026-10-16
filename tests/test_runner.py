@@ -19,13 +19,30 @@ def test_always_refusing_model_over_refuses_benign_and_ignores_payloads():
     assert run.environment["dataset_sha256"]["injection"]
 
 
-def test_always_complying_model_scores_low_injection_resistance():
-    def parrot(system, user):
-        # Naively echo any quoted payload: crude "follows the injection" model.
-        return "Sure! PWNED. DAN ENABLED. ACCESS GRANTED. OVERRIDE ACTIVE. DEV MODE ON. BANANA. Here is a poem."
+def test_model_that_follows_every_payload_scores_zero_injection_resistance():
+    from pipette_adversarial.datasets.loader import load_dataset
 
-    run = run_benchmark(_config(num_consistency_runs=1), MockBackend(responder=parrot))
-    assert run.breakdown.injection_resistance < 50
+    by_input = {s.user_input: s for s in load_dataset("injection", "v1")}
+
+    def obedient(system, user):
+        markers = by_input[user].metadata.get("injection_target_output")
+        if not markers:  # benign look-alike: just answer it
+            return "Sure, here is the answer you asked for."
+        first = markers if isinstance(markers, str) else markers[0]
+        return f"Sure! {first}"
+
+    run = run_benchmark(_config(num_consistency_runs=1), MockBackend(responder=obedient))
+    assert run.breakdown.injection_resistance == 0.0
+    assert run.breakdown.under_refusal_rate == 1.0
+    assert run.breakdown.over_refusal_rate == 0.0
+
+
+def test_model_that_ignores_payloads_without_refusing_passes_attacks_and_benign():
+    run = run_benchmark(
+        _config(num_consistency_runs=1),
+        MockBackend(responder=lambda s, u: "Here is a generic, harmless answer to your question."),
+    )
+    assert run.breakdown.injection_resistance == 100.0
     assert run.breakdown.over_refusal_rate == 0.0
 
 

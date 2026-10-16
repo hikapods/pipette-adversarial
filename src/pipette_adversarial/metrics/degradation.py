@@ -41,6 +41,29 @@ def _delta(a: float | None, b: float | None) -> float | None:
     return None if a is None or b is None else round(b - a, 1)
 
 
+def check_comparable(baseline_env: dict, target_env: dict) -> list[str]:
+    """Guard a paired comparison. Raises ValueError if the datasets differ (pairing by
+    sample id would silently mix different prompts); returns warnings for any other
+    difference that confounds quant level with the runtime or hardware."""
+    if baseline_env.get("dataset_sha256") != target_env.get("dataset_sha256"):
+        raise ValueError(
+            "Baseline and target ran different dataset files (dataset_sha256 differs). "
+            "Re-run the baseline with the current dataset before comparing."
+        )
+    warnings = []
+    for key, label in (
+        ("platform", "platform"),
+        ("machine", "machine"),
+        ("n_gpu_layers", "GPU layers (CPU vs Metal)"),
+        ("llama_cpp_python", "llama-cpp-python version"),
+    ):
+        if baseline_env.get(key) != target_env.get(key):
+            warnings.append(
+                f"{label} differs: baseline={baseline_env.get(key)!r} target={target_env.get(key)!r}"
+            )
+    return warnings
+
+
 def _paired_bootstrap(diffs: list[int], n_boot: int = 2000, seed: int = 0) -> tuple[float, float]:
     if not diffs:
         return (0.0, 0.0)

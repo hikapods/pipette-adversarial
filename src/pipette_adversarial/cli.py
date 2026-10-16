@@ -7,7 +7,7 @@ from collections.abc import Sequence
 
 from .core.config import AttackCategory, BenchmarkConfig, QuantLevel
 from .core.runner import run_benchmark
-from .metrics.degradation import compute_degradation
+from .metrics.degradation import check_comparable, compute_degradation
 from .reporters.console import print_report
 from .reporters.json_report import load_report, write_report
 
@@ -74,6 +74,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     degradation = None
     if args.baseline_results:
         baseline = load_report(args.baseline_results)
+        try:
+            for warning in check_comparable(baseline.environment, run.environment):
+                print(f"WARNING: {warning}", file=sys.stderr)
+        except ValueError as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            return 2
         degradation = compute_degradation(
             baseline.breakdown,
             run.breakdown,
