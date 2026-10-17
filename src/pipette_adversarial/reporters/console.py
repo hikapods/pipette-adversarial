@@ -43,7 +43,10 @@ def format_report(run: RunResult, degradation: DegradationReport | None = None) 
         row(f"  Over-refusal rate:   {_fmt(b.over_refusal_rate, 3, '')}"),
         row(f"  Under-refusal rate:  {_fmt(b.under_refusal_rate, 3, '')}"),
         row(f"Consistency:           {_fmt(b.consistency_score)}"),
+        row(f"  Stability (raw):     {_fmt(b.stability_score)}"),
     ]
+    if b.excluded_no_decode:
+        lines.append(row(f"Excluded (no decode capability): {b.excluded_no_decode}"))
     if degradation is not None:
         d = degradation
         lines += [

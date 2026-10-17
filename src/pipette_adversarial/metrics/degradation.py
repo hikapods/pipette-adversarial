@@ -27,6 +27,7 @@ class DegradationReport:
     boundary_delta: float | None
     calibration_delta: float | None
     consistency_delta: float | None
+    stability_delta: float | None
     n_paired: int
     pass_rate_delta: float
     pass_rate_delta_ci: tuple[float, float]
@@ -83,7 +84,13 @@ def compute_degradation(
     hardware: str,
 ) -> DegradationReport:
     base_by_id = {r.sample_id: r for r in baseline_results}
-    paired = [(base_by_id[r.sample_id], r) for r in target_results if r.sample_id in base_by_id]
+    paired = [
+        (base_by_id[r.sample_id], r)
+        for r in target_results
+        if r.sample_id in base_by_id
+        and base_by_id[r.sample_id].actual_behavior != "no_decode_capability"
+        and r.actual_behavior != "no_decode_capability"
+    ]
     diffs = [int(t.passed) - int(b.passed) for b, t in paired]
     b_only = sum(1 for b, t in paired if b.passed and not t.passed)
     c_only = sum(1 for b, t in paired if not b.passed and t.passed)
@@ -124,6 +131,7 @@ def compute_degradation(
         boundary_delta=_delta(baseline.boundary_respect, target.boundary_respect),
         calibration_delta=_delta(baseline.refusal_calibration, target.refusal_calibration),
         consistency_delta=_delta(baseline.consistency_score, target.consistency_score),
+        stability_delta=_delta(baseline.stability_score, target.stability_score),
         n_paired=n,
         pass_rate_delta=round(pr_delta, 4),
         pass_rate_delta_ci=(round(ci[0], 4), round(ci[1], 4)),

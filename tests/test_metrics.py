@@ -85,3 +85,19 @@ class TestDegradation:
             "m4",
         )
         assert d.n_paired == 0 and "cannot compare" in d.interpretation
+
+    def test_no_decode_capability_pairs_are_excluded_from_comparison(self):
+        base, tgt = _runs(30, 30, n=20)
+        base.append(make_result("nd", actual="no_decode_capability", passed=False))
+        tgt.append(make_result("nd", actual="complied", passed=False))
+        d = compute_degradation(
+            compute_robustness_score(base),
+            compute_robustness_score(tgt),
+            base,
+            tgt,
+            "F16",
+            "Q4_K_M",
+            "m4",
+        )
+        assert d.n_paired == 20  # the "nd" pair is dropped, not counted as a flip
+        assert d.baseline_only_pass == 0 and d.target_only_pass == 0
