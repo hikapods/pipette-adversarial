@@ -26,8 +26,8 @@ class DegradationReport:
     injection_delta: float | None
     boundary_delta: float | None
     calibration_delta: float | None
-    consistency_delta: float | None
-    stability_delta: float | None
+    repeat_pass_delta: float | None  # diagnostic only, not part of composite_delta
+    stability_delta: float | None  # diagnostic only, not part of composite_delta
     n_paired: int
     pass_rate_delta: float
     pass_rate_delta_ci: tuple[float, float]
@@ -44,12 +44,21 @@ def _delta(a: float | None, b: float | None) -> float | None:
 
 def check_comparable(baseline_env: dict, target_env: dict) -> list[str]:
     """Guard a paired comparison. Raises ValueError if the datasets differ (pairing by
-    sample id would silently mix different prompts); returns warnings for any other
-    difference that confounds quant level with the runtime or hardware."""
+    sample id would silently mix different prompts) or the classifier version differs
+    (actual_behavior values come from different rule sets, so a paired pass/fail flip
+    could just be a reclassification, not a model change); returns warnings for any
+    other difference that confounds quant level with the runtime or hardware."""
     if baseline_env.get("dataset_sha256") != target_env.get("dataset_sha256"):
         raise ValueError(
             "Baseline and target ran different dataset files (dataset_sha256 differs). "
             "Re-run the baseline with the current dataset before comparing."
+        )
+    if baseline_env.get("classifier_version") != target_env.get("classifier_version"):
+        raise ValueError(
+            "Baseline and target used different classifier versions "
+            f"(baseline={baseline_env.get('classifier_version')!r} "
+            f"target={target_env.get('classifier_version')!r}). "
+            "Re-run the baseline with the current code before comparing."
         )
     warnings = []
     for key, label in (
@@ -130,7 +139,7 @@ def compute_degradation(
         injection_delta=_delta(baseline.injection_resistance, target.injection_resistance),
         boundary_delta=_delta(baseline.boundary_respect, target.boundary_respect),
         calibration_delta=_delta(baseline.refusal_calibration, target.refusal_calibration),
-        consistency_delta=_delta(baseline.consistency_score, target.consistency_score),
+        repeat_pass_delta=_delta(baseline.repeat_pass_rate, target.repeat_pass_rate),
         stability_delta=_delta(baseline.stability_score, target.stability_score),
         n_paired=n,
         pass_rate_delta=round(pr_delta, 4),

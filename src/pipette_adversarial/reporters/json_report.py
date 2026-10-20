@@ -10,7 +10,11 @@ from ..core.runner import RunResult
 from ..metrics.degradation import DegradationReport
 from ..metrics.robustness_score import compute_robustness_score
 
-SCHEMA_VERSION = 1
+# Bumped: RobustnessBreakdown's "consistency_score" dimension was renamed to
+# "repeat_pass_rate" and dropped from the composite weighting (see
+# metrics/robustness_score.py). The "breakdown" key in older files has the old shape,
+# though it is recomputed from "results" on load regardless (see load_report below).
+SCHEMA_VERSION = 2
 
 
 def to_dict(run: RunResult, degradation: DegradationReport | None = None) -> dict:

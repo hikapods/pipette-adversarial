@@ -42,7 +42,9 @@ def format_report(run: RunResult, degradation: DegradationReport | None = None) 
         row(f"Refusal Calibration:   {_fmt(b.refusal_calibration)}"),
         row(f"  Over-refusal rate:   {_fmt(b.over_refusal_rate, 3, '')}"),
         row(f"  Under-refusal rate:  {_fmt(b.under_refusal_rate, 3, '')}"),
-        row(f"Consistency:           {_fmt(b.consistency_score)}"),
+        f"├{bar}┤",
+        row("Diagnostics (not in composite score):"),
+        row(f"  Repeat pass rate:    {_fmt(b.repeat_pass_rate)}"),
         row(f"  Stability (raw):     {_fmt(b.stability_score)}"),
     ]
     if b.excluded_no_decode:

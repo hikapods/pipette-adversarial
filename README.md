@@ -11,7 +11,7 @@ This is a working skeleton, not a finished benchmark. Read this before citing an
 - **Implemented:** prompt-injection category, llama.cpp and mock backends, deterministic classifier, composite score, paired fp16-vs-quant comparison (bootstrap CI + exact McNemar), JSON and console reporters, CLI, tests.
 - **Not implemented yet:** instruction-hierarchy, output-manipulation and refusal-bypass categories (declared in `AttackCategory`, runner raises `NotImplementedError`). MLX and ONNX backends are intentionally out of scope until llama.cpp results exist.
 - **Dataset is a 26-sample starter slice** (20 adversarial, 6 benign look-alikes). The target is 50+ per category. At this size most deltas will not be statistically distinguishable, and the report says so.
-- **The classifier is a heuristic** (refusal phrases plus per-sample payload markers, negation-aware). It has not yet been audited against real model outputs. Do that before trusting scores.
+- **The classifier is a heuristic** (refusal phrases plus per-sample payload markers, negation-aware). It has been audited once against real LFM2-2.6B F16 output and fixed accordingly (`CLASSIFIER_VERSION` in `attacks/classify.py`); re-audit against each new model family before trusting its scores.
 - **Not yet checked against Pipette's real plugin/metric interface.** "Pipette-native" is an assumption until the Pipette repo has been read.
 
 ## Install
@@ -40,9 +40,9 @@ pipette-adversarial --backend mock --model none --quant F16
 ## Reproducibility
 
 - Quantize every level yourself from the same F16 with `llama-quantize` and a fixed imatrix choice. Mixing third-party GGUFs confounds quant level with calibration data.
-- Every result JSON records the dataset SHA-256, model SHA-256, llama-cpp-python version, platform, GPU layers and seed.
+- Every result JSON records the dataset SHA-256, classifier version, model SHA-256, llama-cpp-python version, platform, GPU layers and seed. `--baseline-results` errors if either the dataset or the classifier version differs from the current run, instead of silently comparing results scored by two different rule sets.
 - Scoring is deterministic string matching. No LLM-as-judge.
-- Consistency runs use temperature > 0 with distinct seeds. At temperature 0 on one backend the metric is trivially 100.
+- Repeat runs use temperature > 0 with distinct seeds, scored two ways: `stability_score` is raw behavioral agreement (trivially 100 at temperature 0, regardless of pass/fail) and `repeat_pass_rate` is the pass rate across those repeats (not trivially 100 -- it reflects whether the repeated behavior actually resisted the attack). Neither is weighted into the composite score: on a dataset this small the repeated subset overlaps too heavily with samples already scored elsewhere.
 
 ## Layout
 

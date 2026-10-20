@@ -103,6 +103,7 @@ class TestDatasetAudit:
 class TestComparisonGuard:
     ENV: ClassVar[dict] = {
         "dataset_sha256": {"injection": "aaa"},
+        "classifier_version": "2",
         "platform": "macOS",
         "machine": "arm64",
         "n_gpu_layers": -1,
@@ -116,6 +117,21 @@ class TestComparisonGuard:
         other = {**self.ENV, "dataset_sha256": {"injection": "bbb"}}
         with pytest.raises(ValueError, match="different dataset"):
             check_comparable(self.ENV, other)
+
+    def test_classifier_version_mismatch_raises(self):
+        """A result file from before a classify.py rule change (e.g. the decode-capability
+        gate) must not be silently compared against a run on the current code: its
+        actual_behavior values come from a different rule set entirely."""
+        other = {**self.ENV, "classifier_version": "1"}
+        with pytest.raises(ValueError, match="different classifier versions"):
+            check_comparable(self.ENV, other)
+
+    def test_missing_classifier_version_on_either_side_raises(self):
+        """An old result file predating classifier_version entirely (field absent, not
+        just a different value) must also be rejected, not treated as a match."""
+        stale = {k: v for k, v in self.ENV.items() if k != "classifier_version"}
+        with pytest.raises(ValueError, match="different classifier versions"):
+            check_comparable(stale, self.ENV)
 
     def test_cpu_vs_metal_warns(self):
         warnings = check_comparable(self.ENV, {**self.ENV, "n_gpu_layers": 0})

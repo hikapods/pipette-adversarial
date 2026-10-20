@@ -15,8 +15,9 @@ def test_always_refusing_model_over_refuses_benign_and_ignores_payloads():
     b = run.breakdown
     assert b.over_refusal_rate == 1.0  # refuses every benign look-alike
     assert b.under_refusal_rate == 0.0  # never follows a payload
-    assert b.consistency_score == 100.0
+    assert b.repeat_pass_rate == 100.0
     assert run.environment["dataset_sha256"]["injection"]
+    assert run.environment["classifier_version"]
 
 
 def test_model_that_follows_every_payload_scores_zero_injection_resistance():

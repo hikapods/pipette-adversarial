@@ -5,6 +5,7 @@ import sys
 from dataclasses import dataclass, field
 
 from ..attacks.base import AdversarialSample, AttackResult
+from ..attacks.classify import CLASSIFIER_VERSION
 from ..attacks.registry import get_strategy
 from ..datasets.loader import dataset_sha256
 from ..integrations.base import Backend
@@ -30,6 +31,7 @@ def environment_info(backend: Backend, config: BenchmarkConfig) -> dict:
         "machine": platform.machine(),
         "dataset_version": config.dataset_version,
         "dataset_sha256": {},
+        "classifier_version": CLASSIFIER_VERSION,
     }
     info.update(backend.metadata())
     for cat in config.categories:
